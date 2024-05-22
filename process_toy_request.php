@@ -54,10 +54,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             echo "The file ". basename( $_FILES["toy-image"]["name"]). " has been uploaded.";
 
             // Veritabanı bağlantısı
-    $servername = "localhost";  // veya sunucu adresi
-    $username = "root";         // MySQL kullanıcı adı
-    $password = "12345";             // MySQL şifresi
-    $dbname = "donation_db";    // Veritabanı adı
+         $servername = "localhost";  // veya sunucu adresi
+         $username = "root";         // MySQL kullanıcı adı
+         $password = "";             // MySQL şifresi
+         $dbname = "donation_db";    // Veritabanı adı
 
             // Bağlantı oluşturma
             $conn = new mysqli($servername, $username, $password, $dbname);

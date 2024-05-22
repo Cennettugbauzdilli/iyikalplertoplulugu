@@ -55,6 +55,9 @@ $requests = fetchTableData($conn, 'requests');
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
+        <li class="nav-item">
+        <a class="navbar-brand" href="index.html">Ana Sayfa</a>
+    </li>
             <li class="nav-item">
                 <a class="nav-link" href="#volunteers">Volunteers</a>
             </li>

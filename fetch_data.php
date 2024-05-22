@@ -1,16 +1,5 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "12345";
-$dbname = "donation_db";
-
-// Veritabanına bağlan
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Bağlantıyı kontrol et
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include 'db.php';
 
 $sql = "SELECT first_name, last_name, address, phone, email, image_path FROM requests";
 $result = $conn->query($sql);

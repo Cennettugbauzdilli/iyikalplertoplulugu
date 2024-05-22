@@ -7,7 +7,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Veritabanı bağlantısı
     $servername = "localhost";  // veya sunucu adresi
     $username = "root";         // MySQL kullanıcı adı
-    $password = "12345";             // MySQL şifresi
+    $password = "";             // MySQL şifresi
     $dbname = "donation_db";    // Veritabanı adı
 
     // Bağlantı oluşturma
