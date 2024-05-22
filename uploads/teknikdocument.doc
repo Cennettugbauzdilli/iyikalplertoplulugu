@@ -1,0 +1,498 @@
+ 
+
+
+			  İyi Kalpler Topluluğu 
+Down Sendromlu Çocuklar için Sosyal Sorumluluk Projesi 
+
+				
+
+		        PROJE TEKNİK DOKÜMANI
+
+
+			      Cennet Tuğba UZDILLI
+
+
+
+
+
+
+1. Giriş
+Bu proje, Down Sendromlu çocuklar için sosyal sorumluluk projesi kapsamında geliştirilmiş bir web sitesidir. Web sitesi, çocuklar ve aileleri için bilgi sağlama, etkinlikleri duyurma ve çocuk bireylerin oyuncak ihtiyaçlarını karşılamaya yönelik amaçlarını taşımaktadır. Projede kullanılan teknolojiler: HTML, CSS, JavaScript, PHP ve PhPMadmin'dir. Geliştirme ortamı olarak Visual Studio Code kullanılmıştır.
+Github: https://github.com/Cennettugbauzdilli/iyikalplertoplulugu
+2. Teknoloji Yığını
+•	Frontend: HTML, CSS, JavaScript
+•	Backend: PHP
+•	Veritabanı: PhpMyAdmin
+•	Geliştirme Ortamı: Visual Studio Code
+•	Sunucu: Apache (XAMPP veya benzeri bir platform üzerinde çalışabilir)
+3. Kurulum
+3.1 Gereksinimler
+•	Visual Studio Code
+•	XAMPP ve MySQL ortamı
+•	Web tarayıcı (Chrome, Firefox, vb.)
+3.2 Adımlar
+1.	XAMPP veya benzeri bir platformu indirip kurun.
+2.	Apache ve MySQL servislerini başlatın.
+3.	Proje dosyalarını $git clone https://github.com/Cennettugbauzdilli/iyikalplertoplulugu ile visual studio code’a koplayiniz.
+4.	PhpMyadmin veritabanında yeni bir veritabanı oluşturun ve gerekli tabloları oluşturmak için SQL dosyasını (örneğin, donation_db.sql) çalıştırın.
+5.	db.php dosyasını açarak veritabanı bağlantı bilgilerini güncelleyin.
+6.   XAMPP Control Panelden run edilerek proje 8000 portundan ayağa kaldırınız.
+Copy code
+<?php
+$servername = "localhost";
+$username = "root";
+$password = ""; 
+$dbname = "donation_db";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+?>
+4. Proje Yapısı
+ 
+5. Veritabanı Yapısı
+1 Adet Database ve 4 Adet verilerimizi tuttuğumuz tablomuz mevcut.
+http://localhost/phpmyadmin/
+Tablolar;
+CREATE DATABASE donation_db;
+
+USE donation_db;
+
+CREATE TABLE donations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    amount DECIMAL(10, 2),
+    email VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    address TEXT NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE `admins` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `username` VARCHAR(255) NOT NULL,
+    `password` VARCHAR(255) NOT NULL,
+    PRIMARY KEY (`id`)
+);
+CREATE TABLE volunteers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    phone VARCHAR(20),
+    gsm VARCHAR(20),
+    email VARCHAR(100),
+    city VARCHAR(50),
+    country VARCHAR(50),
+    district VARCHAR(50),
+    address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+6. Önemli Dosyalar ve Kodlar
+6.1 login.php
+Database’deki kayıtlara erişim sağlamak için admin girişi hizmeti sağlar.
+<?php
+session_start();
+include 'db.php';
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+    
+    $sql = "SELECT * FROM admins WHERE username = ?";
+    $stmt = $conn->prepare($sql);
+    if ($stmt === false) {
+        die('Prepare failed: ' . htmlspecialchars($conn->error));
+    }
+    
+    $stmt->bind_param("s", $username);
+    if ($stmt->execute() === false) {
+        die('Execute failed: ' . htmlspecialchars($stmt->error));
+    }
+    
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $admin = $result->fetch_assoc();
+        if (password_verify($password, $admin['password'])) {
+            $_SESSION['admin_id'] = $admin['id'];
+            header("Location: admin_panel.php");
+            exit();
+        } else {
+            $error = "Invalid username or password";
+        }
+    } else {
+        $error = "Invalid username or password";
+    }
+}
+?>
+
+
+
+6.2 hash_password.php
+Kullanıcıya ait şifrelerin database kayıt işlemleri sırasında şifreyi encryption yöntemi ile şifreleme yapar.
+<?php
+echo password_hash('12345', PASSWORD_BCRYPT);
+?>
+
+6.3 toy_request.js
+Oyuncak talep eden çocukların kayıtlarını database kayıt işlemi yapar ve daha sonra card formatında Ana Sayfada sergilemesini sağlar.
+document.getElementById('toy-request-form').addEventListener('submit', function(event) {
+    event.preventDefault(); // Formun otomatik olarak gönderilmesini durdur
+
+    // Form verilerini al
+    var formData = new FormData(this);
+
+    // Form elemanlarına erişim
+    var firstName = document.getElementById('first-name').value;
+    var lastName = document.getElementById('last-name').value;
+    var address = document.getElementById('address').value;
+    var phone = document.getElementById('phone').value;
+    var email = document.getElementById('email').value;
+    
+    // Hata kontrolü
+    if (!firstName || !lastName || !address || !phone || !email) {
+        alert('Lütfen tüm alanları doldurun.');
+        return;
+    }else{
+
+    
+            // Verileri AJAX ile PHP dosyasına gönder
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "process_toy_request.php", true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            console.log(xhr.responseText); // Sunucudan gelen yanıtı işleyin
+            alert('Başarıyla kaydedildi!');
+                        // Form elemanlarını temizle
+                        document.getElementById('toy-request-form').reset();
+
+                        // Ana sayfaya yönlendir
+                        window.location.href = 'index.html'; // Ana sayfa URL'si
+            
+        } else if (xhr.readyState === 4 && xhr.status !== 200) {
+            alert('Hata: ' + xhr.responseText);
+        }
+    };
+    xhr.send(formData);
+    }
+
+
+6.3 paystack_integration.js
+Oyuncak bedeli değerince isteyen bağışçı para ve nakdi bağışı yapabilir, ve bu datalar database kayıt edilir.
+document.getElementById('paystack-button').addEventListener('click', function(event) {
+  event.preventDefault(); // Formun otomatik olarak gönderilmesini durdur
+
+  // Form elemanlarına erişim
+  var amountElement = document.getElementById('donation-amount');
+  var emailElement = document.getElementById('donation-email');
+
+  // Hata kontrolü
+  if (amountElement && emailElement) {
+      var amount = amountElement.value;
+      var email = emailElement.value;
+
+      // amount ve email değerlerini kullanarak işlemler yapın
+      console.log('Donation Amount:', amount);
+      console.log('Email:', email);
+
+      // Verileri AJAX ile PHP dosyasına gönder
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "process_donation.php", true);
+      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+              console.log(xhr.responseText); // Sunucudan gelen yanıtı işleyin
+              alert('Desteginiz Icin Tesekkurler....');
+                        // Ana sayfaya yönlendir
+                        window.location.href = 'index.html'; // Ana sayfa URL'si
+          }
+      };
+      var data = "donation-amount=" + encodeURIComponent(amount) + "&donation-email=" + encodeURIComponent(email);
+      xhr.send(data);
+  } else {
+      console.error('Form elemanları bulunamadı.');
+  }
+});
+
+
+
+
+7. Kullanıcı Yönergeleri
+7.1 Yeni Admin Ekleme
+1.	localhost:8000/ hash_password.php run ederek belirlediğimiz password’un şifrelenmiş halini databasemize insert edebiliriz.
+2.	Aşağıdaki SQL komutunu kullanarak yeni admin ekleyebilirsiniz:
+sql
+Copy code
+INSERT INTO `admins` (`username`, `password`) VALUES ('cennet', '$2y$10$kVIdjig6d5vbo8ffzMVwqu6CY4ZXI.62WRt82rLy76sMLsjfJZ5Zu');
+Admin girişi için gerekli formlar ve işlemler admin tablosu kullanılarak gerçekleştirilebilir.
+http://localhost:8000/login.php 
+7.2 Gönüllü Kaydı 
+İsteyen kişiler gönüllü ol butonu sayesinde kayıt oluşturabilir ve admin bunların düzenlemesini database üzerinde düzenlemesini veya iletişim konusunda sosyal projelere yönlendirilmesi sağlanabilmekte.
+ 
+8. Güvenlik Önlemleri
+•	Kullanıcı verilerini işlerken SQL enjeksiyonuna karşı koruma sağlamak için hazırlıklı ifadeler (prepared statements) kullanılmalıdır.
+•	Parola saklama için password_hash() ve password_verify() fonksiyonları kullanılmalıdır.
+•	XSS (Cross-Site Scripting) saldırılarına karşı veri girişlerinde uygun filtrelemeler yapılmalıdır.
+9. Sonuç
+Bu teknik dokümantasyon, Down Sendromlu çocuklar için geliştirilmiş sosyal sorumluluk projesi web sitesinin kurulumu, kullanımı ve güvenlik önlemlerini içermektedir. Daha fazla bilgi veya destek için geliştiriciyle iletişime geçebilirsiniz.
+
+ 
+
+
+			  İyi Kalpler Topluluğu 
+Down Sendromlu Çocuklar için Sosyal Sorumluluk Projesi 
+
+				
+
+		        PROJE TEKNİK DOKÜMANI
+
+
+			      Cennet Tuğba UZDILLI
+
+
+
+
+
+
+1. Giriş
+Bu proje, Down Sendromlu çocuklar için sosyal sorumluluk projesi kapsamında geliştirilmiş bir web sitesidir. Web sitesi, çocuklar ve aileleri için bilgi sağlama, etkinlikleri duyurma ve çocuk bireylerin oyuncak ihtiyaçlarını karşılamaya yönelik amaçlarını taşımaktadır. Projede kullanılan teknolojiler: HTML, CSS, JavaScript, PHP ve PhPMadmin'dir. Geliştirme ortamı olarak Visual Studio Code kullanılmıştır.
+Github: https://github.com/Cennettugbauzdilli/iyikalplertoplulugu
+2. Teknoloji Yığını
+•	Frontend: HTML, CSS, JavaScript
+•	Backend: PHP
+•	Veritabanı: PhpMyAdmin
+•	Geliştirme Ortamı: Visual Studio Code
+•	Sunucu: Apache (XAMPP veya benzeri bir platform üzerinde çalışabilir)
+3. Kurulum
+3.1 Gereksinimler
+•	Visual Studio Code
+•	XAMPP ve MySQL ortamı
+•	Web tarayıcı (Chrome, Firefox, vb.)
+3.2 Adımlar
+1.	XAMPP veya benzeri bir platformu indirip kurun.
+2.	Apache ve MySQL servislerini başlatın.
+3.	Proje dosyalarını $git clone https://github.com/Cennettugbauzdilli/iyikalplertoplulugu ile visual studio code’a koplayiniz.
+4.	PhpMyadmin veritabanında yeni bir veritabanı oluşturun ve gerekli tabloları oluşturmak için SQL dosyasını (örneğin, donation_db.sql) çalıştırın.
+5.	db.php dosyasını açarak veritabanı bağlantı bilgilerini güncelleyin.
+6.   XAMPP Control Panelden run edilerek proje 8000 portundan ayağa kaldırınız.
+Copy code
+<?php
+$servername = "localhost";
+$username = "root";
+$password = ""; 
+$dbname = "donation_db";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+?>
+4. Proje Yapısı
+ 
+5. Veritabanı Yapısı
+1 Adet Database ve 4 Adet verilerimizi tuttuğumuz tablomuz mevcut.
+http://localhost/phpmyadmin/
+Tablolar;
+CREATE DATABASE donation_db;
+
+USE donation_db;
+
+CREATE TABLE donations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    amount DECIMAL(10, 2),
+    email VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    address TEXT NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE `admins` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `username` VARCHAR(255) NOT NULL,
+    `password` VARCHAR(255) NOT NULL,
+    PRIMARY KEY (`id`)
+);
+CREATE TABLE volunteers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    phone VARCHAR(20),
+    gsm VARCHAR(20),
+    email VARCHAR(100),
+    city VARCHAR(50),
+    country VARCHAR(50),
+    district VARCHAR(50),
+    address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+6. Önemli Dosyalar ve Kodlar
+6.1 login.php
+Database’deki kayıtlara erişim sağlamak için admin girişi hizmeti sağlar.
+<?php
+session_start();
+include 'db.php';
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+    
+    $sql = "SELECT * FROM admins WHERE username = ?";
+    $stmt = $conn->prepare($sql);
+    if ($stmt === false) {
+        die('Prepare failed: ' . htmlspecialchars($conn->error));
+    }
+    
+    $stmt->bind_param("s", $username);
+    if ($stmt->execute() === false) {
+        die('Execute failed: ' . htmlspecialchars($stmt->error));
+    }
+    
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $admin = $result->fetch_assoc();
+        if (password_verify($password, $admin['password'])) {
+            $_SESSION['admin_id'] = $admin['id'];
+            header("Location: admin_panel.php");
+            exit();
+        } else {
+            $error = "Invalid username or password";
+        }
+    } else {
+        $error = "Invalid username or password";
+    }
+}
+?>
+
+
+
+6.2 hash_password.php
+Kullanıcıya ait şifrelerin database kayıt işlemleri sırasında şifreyi encryption yöntemi ile şifreleme yapar.
+<?php
+echo password_hash('12345', PASSWORD_BCRYPT);
+?>
+
+6.3 toy_request.js
+Oyuncak talep eden çocukların kayıtlarını database kayıt işlemi yapar ve daha sonra card formatında Ana Sayfada sergilemesini sağlar.
+document.getElementById('toy-request-form').addEventListener('submit', function(event) {
+    event.preventDefault(); // Formun otomatik olarak gönderilmesini durdur
+
+    // Form verilerini al
+    var formData = new FormData(this);
+
+    // Form elemanlarına erişim
+    var firstName = document.getElementById('first-name').value;
+    var lastName = document.getElementById('last-name').value;
+    var address = document.getElementById('address').value;
+    var phone = document.getElementById('phone').value;
+    var email = document.getElementById('email').value;
+    
+    // Hata kontrolü
+    if (!firstName || !lastName || !address || !phone || !email) {
+        alert('Lütfen tüm alanları doldurun.');
+        return;
+    }else{
+
+    
+            // Verileri AJAX ile PHP dosyasına gönder
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "process_toy_request.php", true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            console.log(xhr.responseText); // Sunucudan gelen yanıtı işleyin
+            alert('Başarıyla kaydedildi!');
+                        // Form elemanlarını temizle
+                        document.getElementById('toy-request-form').reset();
+
+                        // Ana sayfaya yönlendir
+                        window.location.href = 'index.html'; // Ana sayfa URL'si
+            
+        } else if (xhr.readyState === 4 && xhr.status !== 200) {
+            alert('Hata: ' + xhr.responseText);
+        }
+    };
+    xhr.send(formData);
+    }
+
+
+6.3 paystack_integration.js
+Oyuncak bedeli değerince isteyen bağışçı para ve nakdi bağışı yapabilir, ve bu datalar database kayıt edilir.
+document.getElementById('paystack-button').addEventListener('click', function(event) {
+  event.preventDefault(); // Formun otomatik olarak gönderilmesini durdur
+
+  // Form elemanlarına erişim
+  var amountElement = document.getElementById('donation-amount');
+  var emailElement = document.getElementById('donation-email');
+
+  // Hata kontrolü
+  if (amountElement && emailElement) {
+      var amount = amountElement.value;
+      var email = emailElement.value;
+
+      // amount ve email değerlerini kullanarak işlemler yapın
+      console.log('Donation Amount:', amount);
+      console.log('Email:', email);
+
+      // Verileri AJAX ile PHP dosyasına gönder
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "process_donation.php", true);
+      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+              console.log(xhr.responseText); // Sunucudan gelen yanıtı işleyin
+              alert('Desteginiz Icin Tesekkurler....');
+                        // Ana sayfaya yönlendir
+                        window.location.href = 'index.html'; // Ana sayfa URL'si
+          }
+      };
+      var data = "donation-amount=" + encodeURIComponent(amount) + "&donation-email=" + encodeURIComponent(email);
+      xhr.send(data);
+  } else {
+      console.error('Form elemanları bulunamadı.');
+  }
+});
+
+
+
+
+7. Kullanıcı Yönergeleri
+7.1 Yeni Admin Ekleme
+1.	localhost:8000/ hash_password.php run ederek belirlediğimiz password’un şifrelenmiş halini databasemize insert edebiliriz.
+2.	Aşağıdaki SQL komutunu kullanarak yeni admin ekleyebilirsiniz:
+sql
+Copy code
+INSERT INTO `admins` (`username`, `password`) VALUES ('cennet', '$2y$10$kVIdjig6d5vbo8ffzMVwqu6CY4ZXI.62WRt82rLy76sMLsjfJZ5Zu');
+Admin girişi için gerekli formlar ve işlemler admin tablosu kullanılarak gerçekleştirilebilir.
+http://localhost:8000/login.php 
+7.2 Gönüllü Kaydı 
+İsteyen kişiler gönüllü ol butonu sayesinde kayıt oluşturabilir ve admin bunların düzenlemesini database üzerinde düzenlemesini veya iletişim konusunda sosyal projelere yönlendirilmesi sağlanabilmekte.
+ 
+8. Güvenlik Önlemleri
+•	Kullanıcı verilerini işlerken SQL enjeksiyonuna karşı koruma sağlamak için hazırlıklı ifadeler (prepared statements) kullanılmalıdır.
+•	Parola saklama için password_hash() ve password_verify() fonksiyonları kullanılmalıdır.
+•	XSS (Cross-Site Scripting) saldırılarına karşı veri girişlerinde uygun filtrelemeler yapılmalıdır.
+9. Sonuç
+Bu teknik dokümantasyon, Down Sendromlu çocuklar için geliştirilmiş sosyal sorumluluk projesi web sitesinin kurulumu, kullanımı ve güvenlik önlemlerini içermektedir. Daha fazla bilgi veya destek için geliştiriciyle iletişime geçebilirsiniz.
+
