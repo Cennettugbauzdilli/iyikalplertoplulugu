@@ -1,6 +1,6 @@
 # İyi Kalpler Topluluğu 👨‍👩‍👧‍👦❤️
 
-<img src="./images/Personal.jpeg/">
+
 
 **Hakkimizda:**
 
